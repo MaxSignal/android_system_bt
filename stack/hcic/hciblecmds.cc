@@ -26,12 +26,16 @@
 #include "bt_common.h"
 #include "bt_target.h"
 #include "btu.h"
+#include "device/include/controller.h"
 #include "hcidefs.h"
 #include "hcimsgs.h"
 
 #include <base/bind.h>
+#include <base/logging.h>
+#include <fcntl.h>
 #include <stddef.h>
 #include <string.h>
+#include <unistd.h>
 
 void btsnd_hcic_ble_set_local_used_feat(uint8_t feat_set[8]) {
   BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
@@ -378,6 +382,17 @@ void btsnd_hcic_ble_encrypt(uint8_t* key, uint8_t key_len, uint8_t* plain_text,
 }
 
 void btsnd_hcic_ble_rand(base::Callback<void(BT_OCTET8)> cb) {
+  // controllers without LE (BCM4329) reject LE Rand, but the stack still
+  // generates its LE identity keys and addresses at startup: use the kernel RNG
+  if (!controller_get_interface()->supports_ble()) {
+    BT_OCTET8 rand;
+    int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    CHECK(fd >= 0 && read(fd, rand, sizeof(rand)) == sizeof(rand))
+        << "cannot read /dev/urandom";
+    close(fd);
+    cb.Run(rand);
+    return;
+  }
   btu_hcif_send_cmd_with_cb(FROM_HERE, HCI_BLE_RAND, nullptr, 0,
                             base::Bind(
                                 [](base::Callback<void(BT_OCTET8)> cb,

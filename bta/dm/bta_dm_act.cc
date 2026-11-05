@@ -48,6 +48,7 @@
 #include "osi/include/log.h"
 #include "osi/include/osi.h"
 #include "sdp_api.h"
+#include "device/include/controller.h"
 #include "stack/btm/btm_ble_int.h"
 #include "stack/gatt/connection_manager.h"
 #include "stack/include/gatt_api.h"
@@ -434,7 +435,8 @@ static void bta_dm_sys_hw_cback(tBTA_SYS_HW_EVT status) {
     /* If VSC multi adv commands are available, advertising will be initialized
      * when capabilities are read. If they are not avaliable, initialize
      * advertising here */
-    btm_ble_adv_init();
+    /* not on controllers without LE (BCM4329, Bluetooth 2.1) */
+    if (controller_get_interface()->supports_ble()) btm_ble_adv_init();
 #endif
 
     /* Earlier, we used to invoke BTM_ReadLocalAddr which was just copying the

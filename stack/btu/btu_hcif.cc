@@ -1212,6 +1212,10 @@ static void btu_hcif_encryption_change_evt(uint8_t* p) {
 
     btm_acl_encrypt_change(handle, status, encr_enable);
     btm_sec_encrypt_change(handle, status, encr_enable);
+  } else if (!controller_supports_read_encryption_key_size()) {
+    // Bluetooth 2.1 controller, the key size cannot be read
+    btm_acl_encrypt_change(handle, status, encr_enable);
+    btm_sec_encrypt_change(handle, status, encr_enable);
   } else {
     btsnd_hcic_read_encryption_key_size(handle, base::Bind(&read_encryption_key_size_complete_after_encryption_change));
   }
@@ -2121,7 +2125,8 @@ static void btu_hcif_encryption_key_refresh_cmpl_evt(uint8_t* p) {
   STREAM_TO_UINT8(status, p);
   STREAM_TO_UINT16(handle, p);
 
-  if (status != HCI_SUCCESS || BTM_IsBleConnection(handle)) {
+  if (status != HCI_SUCCESS || BTM_IsBleConnection(handle) ||
+      !controller_supports_read_encryption_key_size()) {
     btm_sec_encrypt_change(handle, status, (status == HCI_SUCCESS) ? 1 : 0);
   } else {
     btsnd_hcic_read_encryption_key_size(handle, base::Bind(&read_encryption_key_size_complete_after_key_refresh));

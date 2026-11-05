@@ -90,6 +90,9 @@ typedef struct controller_t {
 
 } controller_t;
 
+// false on Bluetooth 2.1 controllers
+bool controller_supports_read_encryption_key_size(void);
+
 const controller_t* controller_get_interface();
 
 const controller_t* controller_get_test_interface(
